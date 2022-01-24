@@ -5,9 +5,9 @@ from tqdm import tqdm
 from decouple import config
 
 
-def connect(host, username, password):  
+def connect(host, username, password):
   ftps = FTP_TLS()
-  #ftps.debugging = 2  
+  #ftps.debugging = 2
   ftps.connect(host=host, port=21)
   ftps.login(username, password)
   ftps.prot_p()
@@ -17,13 +17,13 @@ def connect(host, username, password):
 def filter_full_files(full_files):
   full_files.sort()
   last_full_file = full_files[-1]
-  m = re.search('[0-9]+', last_full_file)
+  m = re.search('[0-9]{8,}', last_full_file)
   timestamp = m.group(0)
   return list(filter(lambda t: timestamp in t, full_files))
 
 
 def filter_change_files(last_full_file, change_files):
-  m = re.search('[0-9]+', last_full_file)
+  m = re.search('[0-9]{8,}', last_full_file)
   timestamp = m.group(0)
   cf_timestamps = [
       re.search('[0-9]{' + str(len(timestamp)) + '}', t).group(0) for t in change_files]
@@ -33,6 +33,10 @@ def filter_change_files(last_full_file, change_files):
 
 def download(ftps, file_name):
   size = ftps.size(file_name)
+  if os.path.isfile(file_name) and size == os.path.getsize(file_name):
+    print(file_name + " is already downloaded.")
+    return
+
   with open(file_name, 'wb') as f, tqdm(unit='blocks', unit_scale=True, leave=True, miniters=1, desc="Downloading " + file_name + "...", total=size) as tq:
     def _callback(chunk):
       f.write(chunk)
@@ -66,7 +70,7 @@ if __name__ == "__main__":
   packages = ftps.nlst()
 
   for package in packages:
-    if package != 'GVKeyEnhanced':
+    if not ("Intraday" in package or package == "XpressfeedFeedConfigV2"):
       continue
 
     ftps.cwd(package)
@@ -88,7 +92,8 @@ if __name__ == "__main__":
     for vf in valid_fulls:
       download(ftps, vf)
     last_full_file = full_files[-1]
-    change_files = [f for f in files if "Change" in f and f.endswith("zip")]
+    change_files = [
+        f for f in files if "Change" in f and f.endswith("zip")]
     if change_files:
       valid_changes = filter_change_files(last_full_file, change_files)
       for vc in valid_changes:
@@ -96,5 +101,5 @@ if __name__ == "__main__":
     else:
       print("There is no change files in " + package)
     ftps.cwd('..')
-    break
+    os.chdir('..')
   ftps.quit()
