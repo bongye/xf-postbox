@@ -31,6 +31,13 @@ def filter_change_files(last_full_file, change_files):
   return [change_files[i] for i in range(len(change_files)) if filter_lst[i]]
 
 
+def filter_compustat_files(compustat_files):
+  timestamps = [re.search('[0-9]{8,}', t).group(0) for t in compustat_files]
+  timestamps.sort()
+  last_timestamp = timestamps[-1]
+  return [f for f in compustat_files if last_timestamp in f]
+
+
 def download(ftps, file_name):
   size = ftps.size(file_name)
   if os.path.isfile(file_name) and size == os.path.getsize(file_name):
@@ -70,9 +77,6 @@ if __name__ == "__main__":
   packages = ftps.nlst()
 
   for package in packages:
-    if not ("Intraday" in package or package == "XpressfeedFeedConfigV2"):
-      continue
-
     ftps.cwd(package)
     if not os.path.exists(package):
       os.mkdir(package)
@@ -95,11 +99,29 @@ if __name__ == "__main__":
     change_files = [
         f for f in files if "Change" in f and f.endswith("zip")]
     if change_files:
-      valid_changes = filter_change_files(last_full_file, change_files)
+      # all change file needed 'cause of file gap issue.
+      valid_changes = change_files
       for vc in valid_changes:
         download(ftps, vc)
     else:
       print("There is no change files in " + package)
+    ftps.cwd('..')
+    os.chdir('..')
+
+  # Move to Xpressfeed
+  ftps.cwd('../Xpressfeed')
+  os.chdir('../Xpressfeed')
+
+  folders = ftps.nlst()
+  for folder in folders:
+    ftps.cwd(folder)
+    if not os.path.exists(folder):
+      os.mkdir(folder)
+    os.chdir(folder)
+    files = ftps.nlst()
+    last_files = filter_compustat_files(files)
+    for f in last_files:
+      download(ftps, f)
     ftps.cwd('..')
     os.chdir('..')
   ftps.quit()
