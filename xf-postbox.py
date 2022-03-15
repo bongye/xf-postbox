@@ -77,6 +77,8 @@ if __name__ == "__main__":
   packages = ftps.nlst()
 
   for package in packages:
+    if not (package.startswith("FinancialsIntraday") or package.startswith("FinancialsPremiumIntraday") or package == 'SegmentFinancialsIntraday' or package == 'SegmentProfilesIntraday'):
+      continue
     ftps.cwd(package)
     if not os.path.exists(package):
       os.mkdir(package)
@@ -91,11 +93,6 @@ if __name__ == "__main__":
     else:
       print("There is no full flags in " + package)
 
-    full_files = [f for f in files if "Full" in f and f.endswith("zip")]
-    valid_fulls = filter_full_files(full_files)
-    for vf in valid_fulls:
-      download(ftps, vf)
-    last_full_file = full_files[-1]
     change_files = [
         f for f in files if "Change" in f and f.endswith("zip")]
     if change_files:
@@ -105,6 +102,13 @@ if __name__ == "__main__":
         download(ftps, vc)
     else:
       print("There is no change files in " + package)
+
+    full_files = [f for f in files if "Full" in f and f.endswith("zip")]
+    valid_fulls = filter_full_files(full_files)
+    for vf in valid_fulls:
+      download(ftps, vf)
+    last_full_file = full_files[-1]
+
     ftps.cwd('..')
     os.chdir('..')
 
@@ -114,6 +118,8 @@ if __name__ == "__main__":
 
   folders = ftps.nlst()
   for folder in folders:
+    break
+
     ftps.cwd(folder)
     if not os.path.exists(folder):
       os.mkdir(folder)
