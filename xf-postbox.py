@@ -77,14 +77,29 @@ if __name__ == "__main__":
   packages = ftps.nlst()
 
   for package in packages:
-    if not (package.startswith("FinancialsIntraday") or package.startswith("FinancialsPremiumIntraday") or package == 'SegmentFinancialsIntraday' or package == 'SegmentProfilesIntraday'):
-      continue
     ftps.cwd(package)
     if not os.path.exists(package):
       os.mkdir(package)
     os.chdir(package)
 
     files = ftps.nlst()
+
+    # download feed config
+    if package == 'XpressfeedFeedConfigV2':
+      files.sort()
+      download(ftps, files[-1])
+      ftps.cwd('..')
+      os.chdir('..')
+      continue
+
+    # download installation file
+    if package == 'V5Loader_Linux' or package == 'V5Loader_Windows':
+      for f in files:
+        download(ftps, f)
+      ftps.cwd('..')
+      os.chdir('..')
+      continue
+
     full_flags = [f for f in files if "Full" in f and f.endswith("flg")]
     if full_flags:
       full_flags.sort()
