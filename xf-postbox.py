@@ -3,6 +3,8 @@ import os
 import re
 from tqdm import tqdm
 from decouple import config
+from multiprocessing import cpu_count
+from multiprocessing.pool import ThreadPool
 
 
 def connect(host, username, password):
@@ -38,18 +40,33 @@ def filter_compustat_files(compustat_files):
   return [f for f in compustat_files if last_timestamp in f]
 
 
-def download(ftps, file_name):
-  size = ftps.size(file_name)
-  if os.path.isfile(file_name) and size == os.path.getsize(file_name):
-    print(file_name + " is already downloaded.")
-    return
+def download(file_dic):
+  try:
+    host = config('EDX_HOST')
+    username = config('XF_USERNAME')
+    password = config('XF_PASSWORD')
 
-  with open(file_name, 'wb') as f, tqdm(unit='blocks', unit_scale=True, leave=True, miniters=1, desc="Downloading " + file_name + "...", total=size) as tq:
-    def _callback(chunk):
-      f.write(chunk)
-      tq.update(len(chunk))
-    ftps.retrbinary('RETR %s' % file_name, _callback)
-    f.close()
+    # ftp connection
+    ftps = connect(host, username, password)
+    top_dir, package, file_name = file_dic
+
+    ftps.cwd(top_dir)
+    ftps.cwd(package)
+
+    f = os.path.join(top_dir, package, file_name)
+
+    size = ftps.size(file_name)
+    if os.path.isfile(f) and size == os.path.getsize(f):
+      print(f + " is already downloaded.")
+      return
+    with open(f, 'wb') as ff, tqdm(unit='blocks', unit_scale=True, leave=True, miniters=1, desc="Downloading " + file_name + "...", total=size) as tq:
+      def _callback(chunk):
+        ff.write(chunk)
+        tq.update(len(chunk))
+      ftps.retrbinary('RETR %s' % file_name, _callback)
+      ff.close()
+  except Exception as e:
+    print('An exception occurred : {}'.format(e))
 
 
 if __name__ == "__main__":
@@ -73,76 +90,74 @@ if __name__ == "__main__":
 
   # Move to products first
   ftps.cwd('Products')
-  os.chdir('Products')
+  print('Move to Products')
   packages = ftps.nlst()
+  top_dir = 'Products'
 
+  download_files = []
   for package in packages:
+    # package filter
+    if not package.startswith("GVKey") and package not in ['XpressfeedFeedConfigV2', 'V5Loader_Linux', 'V5Loader_Windows']:
+      continue
+
     ftps.cwd(package)
-    if not os.path.exists(package):
-      os.mkdir(package)
-    os.chdir(package)
+    print('Move to ' + os.path.join(top_dir, package))
+    p = os.path.join(top_dir, package)
+    if not os.path.exists(p):
+      os.makedirs(p)
 
     files = ftps.nlst()
 
     # download feed config
     if package == 'XpressfeedFeedConfigV2':
       files.sort()
-      download(ftps, files[-1])
+      download_files.append((top_dir, package, files[-1]))
       ftps.cwd('..')
-      os.chdir('..')
       continue
 
-    # download installation file
-    if package == 'V5Loader_Linux' or package == 'V5Loader_Windows':
-      for f in files:
-        download(ftps, f)
+    # download installation files
+    if package in ['V5Loader_Linux', 'V5Loader_Windows']:
+      download_files.extend([(top_dir, package, f) for f in files])
       ftps.cwd('..')
-      os.chdir('..')
       continue
 
     full_flags = [f for f in files if "Full" in f and f.endswith("flg")]
     if full_flags:
       full_flags.sort()
       last_full_flag = full_flags[-1]
-      download(ftps, last_full_flag)
+      download_files.append((top_dir, package, last_full_flag))
     else:
       print("There is no full flags in " + package)
+
+    full_files = [f for f in files if "Full" in f and f.endswith("zip")]
+    valid_fulls = filter_full_files(full_files)
+    download_files.extend([(top_dir, package, vf) for vf in valid_fulls])
 
     change_files = [
         f for f in files if "Change" in f and f.endswith("zip")]
     if change_files:
-      # all change file needed 'cause of file gap issue.
-      valid_changes = change_files
-      for vc in valid_changes:
-        download(ftps, vc)
+      valid_changes = filter_change_files(valid_fulls[-1], change_files)
+      download_files.extend([(top_dir, package, vc) for vc in valid_changes])
     else:
       print("There is no change files in " + package)
-
-    full_files = [f for f in files if "Full" in f and f.endswith("zip")]
-    valid_fulls = filter_full_files(full_files)
-    for vf in valid_fulls:
-      download(ftps, vf)
-    last_full_file = full_files[-1]
-
     ftps.cwd('..')
-    os.chdir('..')
 
-  # Move to Xpressfeed
   ftps.cwd('../Xpressfeed')
-  os.chdir('../Xpressfeed')
-
-  folders = ftps.nlst()
-  for folder in folders:
-    break
-
-    ftps.cwd(folder)
-    if not os.path.exists(folder):
-      os.mkdir(folder)
-    os.chdir(folder)
+  print('Move to Xpressfeed')
+  packages = ftps.nlst()
+  top_dir = 'Xpressfeed'
+  for package in packages:
+    ftps.cwd(package)
+    print('Move to ' + os.path.join(top_dir, package))
     files = ftps.nlst()
     last_files = filter_compustat_files(files)
-    for f in last_files:
-      download(ftps, f)
+    download_files.extend([(top_dir, package, lf) for lf in last_files])
     ftps.cwd('..')
-    os.chdir('..')
-  ftps.quit()
+
+  print("File scanning done.")
+  thread_count = cpu_count() - 1
+  thread_pool = ThreadPool(thread_count)
+  thread_pool.imap(download, download_files)
+  thread_pool.close()
+  thread_pool.join()
+  print("File download done.")
