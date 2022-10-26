@@ -97,8 +97,8 @@ if __name__ == "__main__":
   download_files = []
   for package in packages:
     # package filter
-    if not package.startswith("GVKey") and package not in ['XpressfeedFeedConfigV2', 'V5Loader_Linux', 'V5Loader_Windows']:
-      continue
+    # if package not in ['XpressfeedFeedConfigV2', 'V5Loader_Linux', 'V5Loader_Windows']:
+    #  continue
 
     ftps.cwd(package)
     print('Move to ' + os.path.join(top_dir, package))
@@ -149,6 +149,10 @@ if __name__ == "__main__":
   for package in packages:
     ftps.cwd(package)
     print('Move to ' + os.path.join(top_dir, package))
+    p = os.path.join(top_dir, package)
+    if not os.path.exists(p):
+      os.makedirs(p)
+
     files = ftps.nlst()
     last_files = filter_compustat_files(files)
     download_files.extend([(top_dir, package, lf) for lf in last_files])
