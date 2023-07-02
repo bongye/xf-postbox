@@ -154,8 +154,36 @@ if __name__ == "__main__":
       os.makedirs(p)
 
     files = ftps.nlst()
-    last_files = filter_compustat_files(files)
-    download_files.extend([(top_dir, package, lf) for lf in last_files])
+
+    # package filtering
+    #if package not in ['aBANK01']:
+    #  ftps.cwd('..')
+    #  continue
+
+    if package in ['suppcxf']:
+      download_files.extend([(top_dir, package, lf) for lf in files])
+      ftps.cwd('..')
+      continue
+
+    full_flags = [f for f in files if f.startswith("f_") and f.endswith("flg")]
+    if full_flags:
+      full_flags.sort()
+      last_full_flag = full_flags[-1]
+      download_files.append((top_dir, package, last_full_flag))
+    else:
+      print("There is no full flags in " + package)
+
+    full_files = [f for f in files if f.startswith("f_") and f.endswith("zip")]
+    valid_fulls = filter_full_files(full_files)
+    download_files.extend([(top_dir, package, vf) for vf in valid_fulls])
+
+    change_files = [
+        f for f in files if f.startswith("t_")]
+    if change_files:
+      valid_changes = filter_change_files(valid_fulls[-1], change_files)
+      download_files.extend([(top_dir, package, vc) for vc in valid_changes])
+    else:
+      print("There is no change files in " + package)
     ftps.cwd('..')
 
   print("File scanning done.")
