@@ -29,7 +29,7 @@ def filter_change_files(last_full_file, change_files):
   timestamp = m.group(0)
   cf_timestamps = [
       re.search('[0-9]{' + str(len(timestamp)) + '}', t).group(0) for t in change_files]
-  filter_lst = [t > timestamp for t in cf_timestamps]
+  filter_lst = [t[:8] >= timestamp[:8] for t in cf_timestamps]
   return [change_files[i] for i in range(len(change_files)) if filter_lst[i]]
 
 
