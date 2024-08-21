@@ -3,3 +3,6 @@
 
 # local script backup
 archive/
+
+# mac
+.DS_Store
