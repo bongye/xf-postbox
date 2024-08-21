@@ -42,7 +42,7 @@ def filter_compustat_files(compustat_files):
 
 def download(file_dic):
   try:
-    host = config('EDX_HOST')
+    host = config('FTP_HOST')
     username = config('XF_USERNAME')
     password = config('XF_PASSWORD')
 
@@ -71,7 +71,7 @@ def download(file_dic):
 
 if __name__ == "__main__":
   BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-  host = config('EDX_HOST')
+  host = config('FTP_HOST')
   username = config('XF_USERNAME')
   password = config('XF_PASSWORD')
 
