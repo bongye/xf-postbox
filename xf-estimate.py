@@ -63,29 +63,33 @@ if __name__ == "__main__":
   download_files = []
   for package in packages:
     # package filtering
-    # if package not in ['PriceEquityRecentHistoryIntraday'
-    #   , 'KeyDevelopment'
-    #   , 'OwnershipSummaryV2'
-    #   , 'OwnershipDetailV2'
-    #   , 'OwnershipInsider'
-    #   , 'OwnershipPortfolioHoldings'
-    #   , 'OwnershipPortfolioStatistics'
-    #   , 'OwnershipPublicFloatHistoryDaily'
-    #   , 'OwnershipPortfolioStyles'
-    #   , 'OwnershipInsiderDetailV2'
-    #   , 'OwnershipSourceGroup'
-    #   , 'OwnershipFundToParentRelationship'
-    #   , 'SNLFundamentalsUSCANFIG'
-    #   , 'SNLFundamentalsEMEAFIG'
-    #   , 'SNLFundamentalsAPACFIG'
-    #   , 'SNLFundamentalsLATAMFIG'
-    #   , 'SNLReferenceDaily'
-    #   , 'SNLDataItemMasterDaily'
-    #   , 'SNLBankRegFundamentalsLATAM'
-    #   , 'SNLBankRegCurrentLatestUS'
-    #   , 'SNLBankBranchesData'
-    #   , 'SNLBankBranchesReference'
-    #   , 'SNLCorporateData']:
+    # if package not in [
+    #   'CompanyRelReference'
+    #   , 'CompanyRelV3Daily'
+    #   , 'EventsPITDaily'
+    #   , 'EventsReferenceSpan'
+    #   , 'OwnershipCompanyFloatHistoryIntraday'
+    #   , 'OwnershipDetailIntraday'
+    #   , 'OwnershipFundToParentRelationshipIntraday'
+    #   , 'OwnershipInsiderDetailIntraday'
+    #   , 'OwnershipInsiderSummaryIntraday'
+    #   , 'OwnershipPortfolioHoldingsIntraday'
+    #   , 'OwnershipPortfolioLatestIntraday'
+    #   , 'OwnershipPortfolioStatisticsIntraday'
+    #   , 'OwnershipPortfolioStylesIntraday'
+    #   , 'OwnershipSecurityFloatHistIntraday'
+    #   , 'OwnershipSourceGroupIntraday'
+    #   , 'OwnershipSummaryIntraday'
+    #   , 'TransactionsMAConsiderationV2'
+    #   , 'TransactionsMALatestConsiderationV2'
+    #   , 'TransactionsMAMktDataV2'
+    #   , 'TransactionsMAV2'
+    #   , 'TransactionsOfferingLatestV2'
+    #   , 'TransactionsOfferingMarketV2'
+    #   , 'TransactionsOfferingV2'
+    #   , 'TransactionsRefDataV2'
+    #   , 'TransactionsV2'
+    #   ]:
     #   continue
 
     sftp.chdir(package)
@@ -118,6 +122,11 @@ if __name__ == "__main__":
       print("There is no full flags in " + package)
 
     full_files = [f for f in files if "Full" in f and f.endswith("zip")]
+    if not full_files:
+      print("There is no full files in " + package)
+      sftp.chdir('..')
+      continue
+
     valid_fulls = filter_full_files(full_files)
     download_files.extend([(top_dir, package, vf, sftp.stat(vf).st_size) for vf in valid_fulls])
 
@@ -147,9 +156,9 @@ if __name__ == "__main__":
       files = sftp.listdir()
 
       # package filtering
-      # if package not in ['aBANK01']:
-      #  sftp.chdir('..')
-      #  continue
+      if package not in ['aBANK01']:
+        sftp.chdir('..')
+        continue
 
       if package in ['suppcxf']:
         download_files.extend([(top_dir, package, lf, sftp.stat(lf).st_size) for lf in files])
@@ -187,3 +196,7 @@ if __name__ == "__main__":
 
   for f in download_files:
     print("|".join(str(i) for i in f))
+
+  with open('estimate.txt', 'w') as file:
+    for f in download_files:
+      file.write("|".join(str(i) for i in f) + "\n")
