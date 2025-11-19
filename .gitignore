@@ -1,4 +1,3 @@
-.env
 .vscode/
 
 # local script backup
@@ -6,3 +5,7 @@ archive/
 
 # mac
 .DS_Store
+
+config.yaml
+
+download_estimate_*

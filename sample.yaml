@@ -1,0 +1,48 @@
+# SFTP 연결 정보
+connection:
+  host: your_ftp_host
+  username: your_username
+  password: your_password
+  destination: /path/to/destination
+
+# 다운로드할 패키지 목록
+packages:
+  products:
+    - SNLBankBranchesData
+    - SNLBankBranchesReferenceV2
+    - SNLBankRegCurrentLatestUS
+    - SNLBankRegFundamentalsLATAM
+    - SNLCorporateData
+    - SNLDataItemMasterDaily
+    - SNLDepositoryRatesAggregateData
+    - SNLDepositoryRatesReferenceData
+    - SNLFundamentalsAPACFIG
+    - SNLFundamentalsEMEAFIG
+    - SNLFundamentalsLATAMFIG
+    - SNLFundamentalsUSCANFIG
+    - SNLRateWatchDepositoryRatesandFeesV3
+    - SNLReferenceDaily
+  
+  xpressfeed:
+    # Xpressfeed 패키지들 (필요시 추가)
+    # - aBANK01
+    # - suppcxf
+
+# 다운로드 설정
+download:
+  # 동시 다운로드 스레드 수 (null이면 CPU 코어 수 - 1)
+  thread_count: null
+  
+  # 파일 타입별 다운로드 여부
+  file_types:
+    full_files: true
+    change_files: true
+    flag_files: true
+    config_files: true
+
+# 디렉토리 설정
+directories:
+  - Products
+  - Inbox
+  - Outbox
+  - Xpressfeed
